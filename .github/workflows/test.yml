@@ -1,1 +1,69 @@
+name: Python package
+on:
+  push:
+    branches:
+      - feature/*
+    paths-ignore:
+      - README.md
+      - CHANGELOG.md
+      - .gitignore
+      - .github/**
+  pull_request_target:
+    branches:
+      - feature
+      - qa
+      - develop
+    types:
+      - closed
+
+permissions: write-all
+
+jobs:
+  setenv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Decide the environment
+        id: gitenv
+        run: |
+            if [ ${{ github.ref }} == "refs/heads/qa" ]; then
+              envname="QA"
+            elif [ ${{ github.ref }} == "refs/heads/develop" ]; then
+              envname="Development"
+            else
+              envname="Feature"
+            fi
+            echo "Environment to be used is $envname"
+            echo "env_name=$envname" >> $GITHUB_OUTPUT
+    outputs:
+      EnvironmentName: ${{ steps.gitenv.outputs.env_name }}
+
+  build:
+    needs: setenv
+    environment:
+      name: ${{ needs.setenv.outputs.EnvironmentName }}
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || github.event.pull_request.merged == true }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Required due to the way Git works, without it this action won't be able to find any or the correct tags
+
+      - name: Collect the Branch name
+        run: |
+          gitbranch=`echo ${{ github.ref }} | awk -F/ '{print $NF}'`
+          if [ $gitbranch == "main" ]; then
+            gitbranch="prod"
+          fi
+          echo "branchname=$gitbranch" >> $GITHUB_ENV
+
+      - run: echo "The current branch in use is ${{ env.branchname }}"
+
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.7"
+
+      - name: DisplayPythonversion
+        run: python -c "import sys; print(sys.version)"
 
