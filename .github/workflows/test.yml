@@ -3,11 +3,6 @@ on:
   push:
     branches:
       - feature/*
-    paths-ignore:
-      - README.md
-      - CHANGELOG.md
-      - .gitignore
-      - .github/**
   pull_request_target:
     branches:
       - feature
